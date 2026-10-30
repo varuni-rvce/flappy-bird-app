@@ -1,5 +1,5 @@
 {
-  "appId": "com.example.flappybird",
+  "appId": "com.varuni.flappybird",
   "appName": "Flappy Bird",
   "webDir": "www",
   "backgroundColor": "#7fd3e8"
