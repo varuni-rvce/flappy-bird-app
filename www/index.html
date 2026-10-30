@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Flappy Bird</title>
+<style>
+:root{--sky:#7fd3e8;--ink:#2b2d42;--card:#fff8e1;--accent:#ff7a2f;color-scheme:light dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--sky:#1d2b53;--ink:#f4f1de;--card:#2b2d42}}
+html,body{height:100%;margin:0;overflow:hidden;background:var(--sky);font-family:"Trebuchet MS","Segoe UI",sans-serif;touch-action:manipulation;-webkit-user-select:none;user-select:none}
+#wrap{position:relative;height:100%;display:flex;align-items:center;justify-content:center}
+canvas{height:100%;max-width:100%;aspect-ratio:2/3;background:#7fd3e8;display:block}
+#ui{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.card{background:var(--card);color:var(--ink);border:4px solid var(--ink);border-radius:14px;padding:18px 26px;text-align:center;box-shadow:0 6px 0 var(--ink);max-width:80%}
+.card h1{margin:0 0 6px;font-size:30px}
+.card p{margin:4px 0;font-size:16px}
+.hide{display:none}
+</style>
+</head>
+<body>
+<div id="wrap">
+<canvas id="c" width="400" height="600"></canvas>
+<div id="ui"><div class="card" id="card"><h1 id="t">Flappy Bird</h1><p id="s">Tap, click or press Space to flap</p><p id="b">Best: 0</p></div></div>
+</div>
+<script>
+const cv=document.getElementById('c'),ctx=cv.getContext('2d'),W=400,H=600,G=H-80;
+const card=document.getElementById('card'),T=document.getElementById('t'),S=document.getElementById('s'),B=document.getElementById('b');
+let best=0;try{best=+localStorage.getItem('fb_best')||0}catch(e){}
+B.textContent='Best: '+best;
+let bird,pipes,score,state,frame,shake;
+function reset(){bird={x:110,y:260,v:0,r:14};pipes=[];score=0;frame=0;shake=0;state='ready'}
+function flap(){
+  if(state==='over'){if(frame<25)return;reset();card.classList.add('hide');return}
+  if(state==='ready'){state='play';card.classList.add('hide')}
+  bird.v=-7.2;
+}
+function die(){
+  state='over';frame=0;shake=8;
+  if(score>best){best=score;try{localStorage.setItem('fb_best',best)}catch(e){}}
+  T.textContent='Game over';S.textContent='Score: '+score+' — tap to retry';B.textContent='Best: '+best;
+  card.classList.remove('hide');
+}
+function update(){
+  frame++;
+  if(state==='ready'){bird.y=260+Math.sin(frame/10)*8;return}
+  if(state==='over'){if(bird.y<G-bird.r){bird.v+=.5;bird.y+=bird.v}return}
+  bird.v+=.42;bird.y+=bird.v;
+  if(frame%90===1){const gap=150,top=70+Math.random()*(G-gap-140);pipes.push({x:W,top,gap,done:false})}
+  for(const p of pipes){
+    p.x-=2.6;
+    if(!p.done&&p.x+52<bird.x){p.done=true;score++}
+    if(bird.x+bird.r>p.x&&bird.x-bird.r<p.x+52&&(bird.y-bird.r<p.top||bird.y+bird.r>p.top+p.gap))die();
+  }
+  pipes=pipes.filter(p=>p.x>-60);
+  if(bird.y+bird.r>G||bird.y<-20){bird.y=Math.min(bird.y,G-bird.r);die()}
+}
+function pipe(p){
+  ctx.fillStyle='#4caf50';ctx.strokeStyle='#1b5e20';ctx.lineWidth=3;
+  ctx.fillRect(p.x,0,52,p.top);ctx.strokeRect(p.x,-3,52,p.top+3);
+  ctx.fillRect(p.x,p.top+p.gap,52,G-p.top-p.gap);ctx.strokeRect(p.x,p.top+p.gap,52,G-p.top-p.gap);
+  ctx.fillRect(p.x-4,p.top-22,60,22);ctx.strokeRect(p.x-4,p.top-22,60,22);
+  ctx.fillRect(p.x-4,p.top+p.gap,60,22);ctx.strokeRect(p.x-4,p.top+p.gap,60,22);
+}
+function draw(){
+  ctx.save();
+  if(shake>0){ctx.translate((Math.random()-.5)*shake,(Math.random()-.5)*shake);shake*=.8}
+  const dark=matchMedia('(prefers-color-scheme: dark)').matches&&!document.documentElement.dataset.theme;
+  ctx.fillStyle=dark?'#1d2b53':'#7fd3e8';ctx.fillRect(0,0,W,H);
+  ctx.fillStyle=dark?'#2b3a6b':'#bfeaf5';
+  for(let i=0;i<4;i++){const x=((i*170-frame*.4)%(W+120)+W+120)%(W+120)-60;ctx.beginPath();ctx.arc(x,420,40,0,7);ctx.arc(x+40,430,32,0,7);ctx.arc(x-38,432,28,0,7);ctx.fill()}
+  pipes.forEach(pipe);
+  ctx.fillStyle='#c8a25a';ctx.fillRect(0,G,W,H-G);
+  ctx.fillStyle='#7cb342';ctx.fillRect(0,G,W,14);
+  ctx.fillStyle='#a8843f';for(let x=-(frame*2.6%24);x<W;x+=24)ctx.fillRect(x,G+14,12,6);
+  // bird
+  ctx.save();ctx.translate(bird.x,bird.y);ctx.rotate(Math.max(-.5,Math.min(1.2,bird.v/10)));
+  ctx.fillStyle='#ffd23f';ctx.strokeStyle='#2b2d42';ctx.lineWidth=3;
+  ctx.beginPath();ctx.ellipse(0,0,bird.r+3,bird.r,0,0,7);ctx.fill();ctx.stroke();
+  ctx.fillStyle='#ff7a2f';ctx.beginPath();ctx.moveTo(10,-2);ctx.lineTo(24,3);ctx.lineTo(10,8);ctx.closePath();ctx.fill();ctx.stroke();
+  ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(6,-6,5,0,7);ctx.fill();ctx.stroke();
+  ctx.fillStyle='#2b2d42';ctx.beginPath();ctx.arc(8,-6,2,0,7);ctx.fill();
+  const w=state==='play'?Math.sin(frame/2)*6:Math.sin(frame/5)*4;
+  ctx.fillStyle='#f4b400';ctx.beginPath();ctx.ellipse(-5,4,8,5+w/2,-.3,0,7);ctx.fill();ctx.stroke();
+  ctx.restore();
+  if(state==='play'){ctx.font='bold 54px "Trebuchet MS",sans-serif';ctx.textAlign='center';ctx.lineWidth=7;ctx.strokeStyle='#2b2d42';ctx.fillStyle='#fff';ctx.strokeText(score,W/2,90);ctx.fillText(score,W/2,90)}
+  ctx.restore();
+}
+function loop(){update();draw();requestAnimationFrame(loop)}
+function input(e){e.preventDefault();flap()}
+cv.addEventListener('pointerdown',input);
+document.getElementById('wrap').addEventListener('pointerdown',input);
+addEventListener('keydown',e=>{if(e.code==='Space'||e.code==='ArrowUp'){e.preventDefault();flap()}});
+reset();loop();
+</script>
+</body>
+</html>

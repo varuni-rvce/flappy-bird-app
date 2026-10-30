@@ -1,0 +1,6 @@
+{
+  "appId": "com.example.flappybird",
+  "appName": "Flappy Bird",
+  "webDir": "www",
+  "backgroundColor": "#7fd3e8"
+}
