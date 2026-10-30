@@ -46,3 +46,5 @@ npx @capacitor/assets generate
 ## Controls
 
 Tap, click, or press Space or the Up arrow to flap. Best score is saved on the device.
+
+Originally built in May 2024; rebuilt and repackaged as a Capacitor mobile app in October 2026.
